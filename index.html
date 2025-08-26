@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- PWA Manifest and Theme Color -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0a0f1f">
+
+  <title>داشبورد پیشرفته تحلیل طلا</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- اضافه کردن کتابخانه Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Global Styles & Variables */
+    :root {
+      --bg-dark: #0a0f1f;
+      --card-bg: rgba(22, 27, 39, 0.6);
+      --primary-text: #e6edf3;
+      --secondary-text: #8d96a0;
+      --accent-purple: #c084fc;
+      --accent-purple-dark: #a855f7;
+      --accent-teal: #2dd4bf;
+      --accent-teal-dark: #14b8a6;
+      --accent-pink: #f472b6;
+      --accent-pink-dark: #ec4899;
+      --border-color: rgba(139, 148, 158, 0.2);
+      --grid-line-color: rgba(139, 148, 158, 0.1);
+      --input-bg: #010409;
+      --red: #ff7b72;
+      --red-dark: #f05252;
+      --green-positive: #3fb950;
+      --green-positive-dark: #22c55e;
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --highlight-shadow: rgba(192, 132, 252, 0.15);
+      --aurora-1: rgba(168, 85, 247, 0.1);
+      --aurora-2: rgba(45, 212, 191, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--primary-text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    #dynamic-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    
+    .dashboard-container {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px; }
+    header h1 .icon { color: #fcc419; margin-right: 12px; display: inline-block; transform: translateY(6px); }
+    header p { font-size: 1.2rem; color: var(--secondary-text); }
+
+    .main-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+    
+    .card {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle, var(--aurora-1) 0%, var(--aurora-2) 50%, transparent 70%);
+      animation: rotate-aurora 15s linear infinite;
+      z-index: -1;
+    }
+    @keyframes rotate-aurora { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 40px var(--shadow-color);
+      border-color: rgba(192, 132, 252, 0.4);
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    /* Grid Column Spans */
+    #market-info-card, #dollar-analysis-card { grid-column: span 12; }
+    #bullion-analysis-card, #gold-18k-analysis-card, #coin-analysis-card, #bahar-coin-analysis-card { grid-column: span 12; }
+    #half-coin-analysis-card, #quarter-coin-analysis-card, #gram-coin-analysis-card { grid-column: span 12; }
+
+    @media (min-width: 992px) {
+        #market-info-card { grid-column: span 5; }
+        #dollar-analysis-card { grid-column: span 7; }
+        #bullion-analysis-card, #gold-18k-analysis-card { grid-column: span 6; }
+        #coin-analysis-card, #bahar-coin-analysis-card { grid-column: span 6; }
+        #half-coin-analysis-card, #quarter-coin-analysis-card, #gram-coin-analysis-card { grid-column: span 4; }
+    }
+
+    /* Input Card Styles */
+    .input-group { display: flex; flex-direction: column; gap: 8px; }
+    .input-group label { font-size: 0.95rem; color: var(--secondary-text); margin-right: 4px; }
+    .input-group input {
+      width: 100%; padding: 16px; background-color: var(--input-bg);
+      border: 1px solid var(--border-color); border-radius: 12px;
+      color: var(--primary-text); font-size: 1.1rem; font-family: 'Vazirmatn', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-group input:focus {
+      outline: none; border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px var(--highlight-shadow);
+    }
+    
+    .button-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .main-button {
+      flex: 1; padding: 16px; font-size: 1.2rem; font-weight: 700;
+      color: #fff; background: linear-gradient(90deg, var(--accent-purple), var(--accent-purple-dark));
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .main-button:hover { transform: translateY(-3px); box-shadow: 0 6px 20px var(--highlight-shadow); }
+
+    .secondary-button {
+      background: var(--input-bg);
+      color: var(--secondary-text);
+      border: 1px solid var(--border-color);
+    }
+    .secondary-button:hover {
+      color: var(--primary-text);
+      border-color: var(--accent-teal);
+    }
+    .main-button:disabled, .secondary-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .danger-button {
+        background: var(--red-dark);
+        width: 100%;
+    }
+    .danger-button:hover {
+        background: var(--red);
+        box-shadow: 0 6px 20px rgba(255, 123, 114, 0.2);
+    }
+    .input-description {
+        font-size: 0.85rem;
+        color: var(--secondary-text);
+        margin-top: 8px;
+        text-align: right;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    /* Dollar Analysis Card */
+    .bar-chart-container {
+        height: 250px;
+        width: 100%;
+    }
+    
+    .conclusion { background-color: var(--input-bg); padding: 14px 18px; border-radius: 12px; text-align: center; color: var(--secondary-text); font-size: 0.95rem; }
+    
+    .dollar-bubble-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+    .bubble-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.1rem;
+    }
+    .bubble-item .label { color: var(--secondary-text); }
+    .bubble-item .value { font-weight: 700; direction: ltr; transition: color 0.5s ease; }
+    .bubble-item .value.positive { color: var(--green-positive); }
+    .bubble-item .value.negative { color: var(--red); }
+
+    /* Bubble Chart (Donut) Styles */
+    .analysis-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
+    .analysis-row .label { font-size: 1rem; color: var(--secondary-text); }
+    .analysis-row .value { font-size: 1.15rem; font-weight: 600; direction: ltr; }
+    .bubble-display {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+    }
+    .bubble-chart-container {
+        position: relative;
+        height: 200px;
+        width: 200px;
+        margin: 0 auto;
+    }
+
+    .currency-unit { font-size: 0.8em; margin-right: 4px; }
+    .hidden { display: none !important; }
+    #error-message { color: var(--red); text-align: center; margin-top: 10px; }
+    
+    /* Settings & iOS Modal Styles */
+    #settings-icon {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      cursor: pointer;
+      fill: var(--secondary-text);
+      transition: fill 0.3s ease, transform 0.3s ease;
+      width: 32px;
+      height: 32px;
+    }
+    #settings-icon:hover {
+      fill: var(--primary-text);
+      transform: rotate(45deg);
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal-content {
+      background-color: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 40px var(--shadow-color);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.visible .modal-content {
+      transform: scale(1);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .modal-header h3 { font-size: 1.4rem; }
+    .modal-close {
+      cursor: pointer;
+      font-size: 2rem;
+      color: var(--secondary-text);
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--primary-text); }
+    .modal-body .input-group { margin-bottom: 20px; }
+    
+    #ios-install-instructions {
+        text-align: center;
+    }
+    #ios-install-instructions p {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+    }
+    #ios-install-instructions .icon-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.2rem;
+    }
+    #ios-install-instructions .icon-row svg {
+        width: 32px;
+        height: 32px;
+        fill: var(--primary-text);
+    }
+
+    .radio-group { display: flex; gap: 15px; }
+    .radio-group label {
+      flex: 1; text-align: center; padding: 12px;
+      background-color: var(--input-bg); border: 1px solid var(--border-color);
+      border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+    }
+    .radio-group input { display: none; }
+    .radio-group input:checked + label {
+      background-color: var(--accent-purple);
+      border-color: var(--accent-purple-dark);
+      color: #fff;
+    }
+
+    /* Switch Toggle */
+    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--input-bg); border: 1px solid var(--border-color); transition: .4s; border-radius: 28px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: var(--secondary-text); transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-purple); border-color: var(--accent-purple-dark); }
+    input:checked + .slider:before { transform: translateX(22px); background-color: white; }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      header {
+        padding-top: 50px; /* Make space for the icon */
+      }
+      header h1 {
+        font-size: 2rem;
+      }
+      #settings-icon {
+        top: 15px;
+        left: 15px;
+      }
+      .main-grid {
+        grid-template-columns: 1fr; /* Stack cards vertically */
+      }
+      #half-coin-analysis-card, #quarter-coin-analysis-card, #gram-coin-analysis-card {
+        grid-column: span 1;
+      }
+      .card {
+        padding: 16px;
+      }
+      .button-group {
+        flex-direction: column;
+      }
+      .bar-chart-container {
+        height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+<canvas id="dynamic-bg"></canvas>
+
+<div class="dashboard-container">
+  <header>
+    <div id="settings-icon" title="تنظیمات">
+      <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 l-3.84,0c-0.24,0-0.44,0.17-0.48,0.41L9.22,5.72C8.63,5.96,8.1,6.29,7.6,6.67L5.21,5.71C4.99,5.62,4.74,5.7,4.62,5.92L2.7,9.24 c-0.11,0.2-0.06,0.47,0.12,0.61L4.85,11c-0.04,0.3-0.06,0.61-0.06,0.94s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.38,2.91 c0.04,0.24,0.24,0.41,0.48,0.41l3.84,0c0.24,0,0.44,0.17,0.48-0.41l0.38-2.91c0.59-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.2,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
+    </div>
+    <h1><span class="icon">💎</span>داشبورد پیشرفته تحلیل طلا</h1>
+    <p>تحلیل جامع قیمت و حباب در بازار طلا و ارز</p>
+  </header>
+
+  <main class="main-grid">
+    <div class="card" id="market-info-card">
+      <h2>📈 اطلاعات لحظه‌ای بازار</h2>
+      <div class="input-group">
+        <label for="ouncePrice">قیمت جهانی انس طلا (دلار)</label>
+        <input type="text" id="ouncePrice" inputmode="decimal" placeholder="مثال: 2350.5">
+      </div>
+      <div class="input-group">
+        <label for="usdRate">قیمت دلار بازار آزاد (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="usdRate" inputmode="numeric" placeholder="مثال: 58500">
+      </div>
+      <div class="input-group">
+        <label for="bullionMarketPrice">قیمت هر گرم شمش (۲۴ عیار - <span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="bullionMarketPrice" inputmode="numeric" placeholder="مثال: 4,500,000">
+      </div>
+      <div class="input-group">
+        <label for="gold18kMarketPrice">قیمت هر گرم طلای ۱۸ عیار (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="gold18kMarketPrice" inputmode="numeric" placeholder="مثال: 3,750,000">
+      </div>
+      <div class="input-group">
+        <label for="coinMarketPrice">قیمت سکه امامی (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="coinMarketPrice" inputmode="numeric" placeholder="مثال: 41,200,000">
+      </div>
+      <div class="input-group">
+        <label for="baharCoinMarketPrice">قیمت سکه بهار آزادی (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="baharCoinMarketPrice" inputmode="numeric" placeholder="مثال: 38,100,000">
+      </div>
+      <div class="input-group">
+        <label for="halfCoinMarketPrice">قیمت نیم سکه (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="halfCoinMarketPrice" inputmode="numeric" placeholder="مثال: 22,500,000">
+      </div>
+      <div class="input-group">
+        <label for="quarterCoinMarketPrice">قیمت ربع سکه (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="quarterCoinMarketPrice" inputmode="numeric" placeholder="مثال: 14,500,000">
+      </div>
+      <div class="input-group">
+        <label for="gramCoinMarketPrice">قیمت سکه گرمی (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="gramCoinMarketPrice" inputmode="numeric" placeholder="مثال: 6,900,000">
+      </div>
+      <div class="button-group">
+        <button class="main-button secondary-button" id="auto-fill-button">
+          <span class="button-text">🪄 پر کردن خودکار</span>
+          <span class="spinner hidden"></span>
+        </button>
+        <button class="main-button" id="analyze-button">تحلیل کن</button>
+      </div>
+      <p id="error-message" class="hidden"></p>
+    </div>
+    
+    <div class="card hidden" id="dollar-analysis-card">
+        <h2>💵 تحلیل جامع دلار</h2>
+        <div class="bar-chart-container">
+            <canvas id="dollarBarChart"></canvas>
+        </div>
+        <div class="conclusion" id="dollar-conclusion">---</div>
+        <div class="dollar-bubble-summary" id="dollar-bubble-summary-container">
+          <!-- Bubbles will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <div class="card hidden" id="bullion-analysis-card">
+        <h2>⚖️ تحلیل شمش (۲۴ عیار)</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-bullion-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی:</span><span class="value" id="res-bullion-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="bullionDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="gold-18k-analysis-card">
+        <h2>✨ تحلیل طلای ۱۸ عیار</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-gold-18k-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با کارمزد):</span><span class="value" id="res-gold-18k-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="gold18kDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="coin-analysis-card">
+        <h2>🪙 تحلیل سکه امامی</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-coin-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با اجرت):</span><span class="value" id="res-coin-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="coinDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="bahar-coin-analysis-card">
+        <h2>🪙 تحلیل سکه بهار آزادی</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-bahar-coin-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با اجرت):</span><span class="value" id="res-bahar-coin-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="baharcoinDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="half-coin-analysis-card">
+        <h2>🪙 تحلیل نیم سکه</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-half-coin-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با اجرت):</span><span class="value" id="res-half-coin-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="halfcoinDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="quarter-coin-analysis-card">
+        <h2>🪙 تحلیل ربع سکه</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-quarter-coin-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با اجرت):</span><span class="value" id="res-quarter-coin-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="quartercoinDonutChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card hidden" id="gram-coin-analysis-card">
+        <h2>🪙 تحلیل سکه گرمی</h2>
+        <div class="analysis-row"><span class="label">قیمت بازاری:</span><span class="value" id="res-gram-coin-market">---</span></div>
+        <div class="analysis-row"><span class="label">ارزش ذاتی (با اجرت):</span><span class="value" id="res-gram-coin-intrinsic">---</span></div>
+        <div class="bubble-display">
+            <div class="bubble-chart-container"><canvas id="gramcoinDonutChart"></canvas></div>
+        </div>
+    </div>
+  </main>
+</div>
+
+<!-- Settings Modal HTML -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>تنظیمات</h3>
+      <span class="modal-close" id="modal-close-btn">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label for="commission-rate">کارمزد ساخت طلای ۱۸ عیار (درصد)</label>
+        <input type="number" id="commission-rate" value="0" placeholder="مثال: 7">
+      </div>
+      <div class="input-group">
+        <label for="coin-commission">اجرت و کارمزد سکه (<span class="currency-unit">تومان</span>)</label>
+        <input type="text" id="coin-commission" inputmode="numeric" value="0" placeholder="مثال: 100,000">
+      </div>
+      <div class="input-group">
+        <label>واحد پول</label>
+        <div class="radio-group">
+          <input type="radio" id="unit-toman" name="currency-unit" value="toman" checked>
+          <label for="unit-toman">تومان</label>
+          <input type="radio" id="unit-rial" name="currency-unit" value="rial">
+          <label for="unit-rial">ریال</label>
+        </div>
+      </div>
+       <div class="input-group">
+          <label for="proxy-url-input">آدرس پراکسی اختصاصی</label>
+          <input type="text" id="proxy-url-input" placeholder="https://sbt.fxsinahamidi.workers.dev/">
+          <p class="input-description">آدرس پراکسی Cloudflare Worker خود را وارد کنید.</p>
+      </div>
+      <div class="input-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
+        <label for="use-proxy-toggle">استفاده از پراکسی اختصاصی</label>
+        <label class="switch">
+            <input type="checkbox" id="use-proxy-toggle">
+            <span class="slider"></span>
+        </label>
+      </div>
+       <div class="input-group" id="install-pwa-container">
+            <label>نصب اپلیکیشن</label>
+            <button class="main-button secondary-button" id="install-pwa-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                <span id="install-pwa-text">نصب اپلیکیشن</span>
+            </button>
+            <p class="input-description">اپلیکیشن را برای دسترسی سریع‌تر روی دستگاه خود نصب کنید.</p>
+        </div>
+       <div class="input-group">
+            <label>مدیریت داده‌ها</label>
+            <button class="main-button danger-button" id="clear-cache-button">پاک کردن حافظه پنهان (Cache)</button>
+            <p class="input-description">تمام قیمت‌های ذخیره شده و تنظیمات شما را پاک می‌کند.</p>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- iOS Install Instructions Modal -->
+<div class="modal-overlay" id="ios-install-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>راهنمای نصب در iOS</h3>
+            <span class="modal-close" id="ios-modal-close-btn">×</span>
+        </div>
+        <div class="modal-body" id="ios-install-instructions">
+            <p>برای نصب اپلیکیشن، مراحل زیر را دنبال کنید:</p>
+            <div class="icon-row">
+                <span>۱. دکمه Share را بزنید</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M 25 4 C 25.552 4 26 4.448 26 5 L 26 26.585938 L 29.292969 23.292969 C 29.683969 22.901969 30.316031 22.901969 30.707031 23.292969 C 31.098031 23.683969 31.098031 24.316031 30.707031 24.707031 L 25.707031 29.707031 C 25.316031 30.098031 24.683969 30.098031 24.292969 29.707031 L 19.292969 24.707031 C 18.901969 24.316031 18.901969 23.683969 19.292969 23.292969 C 19.683969 22.901969 20.316031 22.901969 20.707031 23.292969 L 24 26.585938 L 24 5 C 24 4.448 24.448 4 25 4 z M 8 13 C 6.895 13 6 13.895 6 15 L 6 39 C 6 40.105 6.895 41 8 41 L 42 41 C 43.105 41 44 40.105 44 39 L 44 15 C 44 13.895 43.105 13 42 13 L 36 13 L 36 15 L 42 15 L 42 39 L 8 39 L 8 15 L 14 15 L 14 13 L 8 13 z"/></svg>
+            </div>
+            <p>↓</p>
+            <div class="icon-row">
+                <span>۲. گزینه Add to Home Screen را انتخاب کنید</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M 24 4 C 23.447 4 23 4.447 23 5 L 23 20 L 21 20 C 20.447 20 20 20.447 20 21 C 20 21.553 20.447 22 21 22 L 23 22 L 23 37 C 23 37.553 23.447 38 24 38 C 24.553 38 25 37.553 25 37 L 25 22 L 27 22 C 27.553 22 28 21.553 28 21 C 28 20.447 27.553 20 27 20 L 25 20 L 25 5 C 25 4.447 24.553 4 24 4 z M 9 9 C 7.345 9 6 10.345 6 12 L 6 40 C 6 41.655 7.345 43 9 43 L 41 43 C 42.655 43 44 41.655 44 40 L 44 12 C 44 10.345 42.655 9 41 9 L 9 9 z M 9 11 L 41 11 C 41.551 11 42 11.449 42 12 L 42 40 C 42 40.551 41.551 41 41 41 L 9 41 C 8.449 41 8 40.551 8 40 L 8 12 C 8 11.449 8.449 11 9 11 z"/></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  // --- Dynamic Background Script ---
+  const canvas = document.getElementById('dynamic-bg');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  let particlesArray;
+
+  const particleCount = 70;
+  particlesArray = [];
+
+  class Particle {
+      constructor(x, y, directionX, directionY, size, color) {
+          this.x = x; this.y = y; this.directionX = directionX;
+          this.directionY = directionY; this.size = size; this.color = color;
+      }
+      draw() {
+          ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+          ctx.fillStyle = this.color; ctx.fill();
+      }
+      update() {
+          if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+          if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+          this.x += this.directionX; this.y += this.directionY;
+          this.draw();
+      }
+  }
+
+  function init() {
+      particlesArray = [];
+      for (let i = 0; i < particleCount; i++) {
+          let size = (Math.random() * 2) + 1;
+          let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+          let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+          let directionX = (Math.random() * .4) - .2;
+          let directionY = (Math.random() * .4) - .2;
+          let color = 'rgba(192, 132, 252, 0.3)';
+          particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+      }
+  }
+
+  function animate() {
+      requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
+  }
+
+  init();
+  animate();
+  window.addEventListener('resize', () => {
+      canvas.width = innerWidth; canvas.height = innerHeight; init();
+  });
+  
+  // --- App Logic ---
+
+  // --- Constants ---
+  const TROY_OUNCE_IN_GRAMS = 31.1035;
+  const GOLD_18K_FACTOR = 0.75;
+  const GOLD_PURITY_IN_COIN = 0.900;
+  // Coin Weights
+  const FULL_COIN_WEIGHT_GRAMS = 8.133; // Emami and Bahar Azadi
+  const HALF_COIN_WEIGHT_GRAMS = 4.0665;
+  const QUARTER_COIN_WEIGHT_GRAMS = 2.03325;
+  const GRAM_COIN_WEIGHT_GRAMS = 1.0;
+  
+  const CORS_PROXIES = [
+      'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?',
+      'https://api.codetabs.com/v1/proxy/?quest=',
+      'https://thingproxy.freeboard.io/fetch/'
+  ];
+  
+  // --- Chart.js Global Config ---
+  Chart.defaults.font.family = 'Vazirmatn';
+  Chart.defaults.color = '#8d96a0';
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.plugins.tooltip.font = { family: 'Vazirmatn' };
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(10, 15, 31, 0.8)';
+  Chart.defaults.plugins.tooltip.titleFont = { size: 14, weight: 'bold' };
+  Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+  Chart.defaults.plugins.tooltip.padding = 12;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.boxPadding = 4;
+
+
+  // --- DOM References ---
+  const inputs = {
+    ouncePrice: document.getElementById('ouncePrice'),
+    usdRate: document.getElementById('usdRate'),
+    bullionMarketPrice: document.getElementById('bullionMarketPrice'),
+    gold18kMarketPrice: document.getElementById('gold18kMarketPrice'),
+    coinMarketPrice: document.getElementById('coinMarketPrice'),
+    baharCoinMarketPrice: document.getElementById('baharCoinMarketPrice'),
+    halfCoinMarketPrice: document.getElementById('halfCoinMarketPrice'),
+    quarterCoinMarketPrice: document.getElementById('quarterCoinMarketPrice'),
+    gramCoinMarketPrice: document.getElementById('gramCoinMarketPrice'),
+  };
+  const cards = {
+    dollar: document.getElementById('dollar-analysis-card'),
+    bullion: document.getElementById('bullion-analysis-card'),
+    'gold-18k': document.getElementById('gold-18k-analysis-card'),
+    coin: document.getElementById('coin-analysis-card'),
+    'bahar-coin': document.getElementById('bahar-coin-analysis-card'),
+    'half-coin': document.getElementById('half-coin-analysis-card'),
+    'quarter-coin': document.getElementById('quarter-coin-analysis-card'),
+    'gram-coin': document.getElementById('gram-coin-analysis-card'),
+  };
+  const settingsModal = document.getElementById('settings-modal');
+  const commissionRateInput = document.getElementById('commission-rate');
+  const coinCommissionInput = document.getElementById('coin-commission');
+  const currencyUnitRadios = document.querySelectorAll('input[name="currency-unit"]');
+  const useProxyToggle = document.getElementById('use-proxy-toggle');
+  const proxyUrlInput = document.getElementById('proxy-url-input');
+  const errorMessageEl = document.getElementById('error-message');
+  const currencyUnitSpans = document.querySelectorAll('.currency-unit');
+  const analyzeButton = document.getElementById('analyze-button');
+  const autoFillButton = document.getElementById('auto-fill-button');
+  const clearCacheButton = document.getElementById('clear-cache-button');
+  const installPwaButton = document.getElementById('install-pwa-button');
+  const installPwaText = document.getElementById('install-pwa-text');
+  const iosInstallModal = document.getElementById('ios-install-modal');
+
+  // --- State ---
+  let settings = {
+    commission: 0,
+    coinCommission: 0,
+    currencyUnit: 'toman',
+    useProxy: false,
+    proxyUrl: 'https://sbt.fxsinahamidi.workers.dev/'
+  };
+  let deferredPrompt = null;
+  let previousAnalysisData = {};
+
+
+  // --- Helpers ---
+  const getCssVar = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  const formatNumber = (num, options = {}) => {
+      const multiplier = settings.currencyUnit === 'rial' ? 10 : 1;
+      return new Intl.NumberFormat('fa-IR', options).format(Math.round(num * multiplier));
+  };
+  const parseInput = (value) => {
+      if (!value) return NaN;
+      return parseFloat(String(value).replace(/,/g, ''));
+  }
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  // --- Animation Helper ---
+  function animateValue(element, start, end, duration = 500, formatter) {
+      if (!element) return;
+      if (start === end) {
+          element.innerHTML = formatter(end);
+          return;
+      }
+      let startTimestamp = null;
+      const step = (timestamp) => {
+          if (!startTimestamp) startTimestamp = timestamp;
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          const current = Math.floor(progress * (end - start) + start);
+          element.innerHTML = formatter(current);
+          if (progress < 1) {
+              window.requestAnimationFrame(step);
+          }
+      };
+      window.requestAnimationFrame(step);
+  }
+  
+  // --- LocalStorage Functions ---
+  function saveSettings() {
+      localStorage.setItem('goldAnalysisSettings', JSON.stringify(settings));
+  }
+  function loadSettings() {
+      const saved = localStorage.getItem('goldAnalysisSettings');
+      if (saved) {
+          settings = { ...settings, ...JSON.parse(saved) };
+      }
+      commissionRateInput.value = settings.commission;
+      updateInputValue(coinCommissionInput, settings.coinCommission);
+      document.getElementById(`unit-${settings.currencyUnit}`).checked = true;
+      useProxyToggle.checked = settings.useProxy;
+      proxyUrlInput.value = settings.proxyUrl;
+      updateCurrencyUnitDisplay();
+  }
+  function saveInputs() {
+      const dataToSave = {};
+      for (const key in inputs) {
+          dataToSave[key] = inputs[key].value;
+      }
+      localStorage.setItem('goldAnalysisInputs', JSON.stringify(dataToSave));
+  }
+  function loadInputs() {
+      const saved = localStorage.getItem('goldAnalysisInputs');
+      if (saved) {
+          const savedInputs = JSON.parse(saved);
+          for (const key in savedInputs) {
+              if (inputs[key]) inputs[key].value = savedInputs[key];
+          }
+      }
+  }
+  function clearCache() {
+      if (confirm('آیا از پاک کردن تمام داده‌های ذخیره شده مطمئن هستید؟ این عمل غیرقابل بازگشت است.')) {
+          localStorage.removeItem('goldAnalysisSettings');
+          localStorage.removeItem('goldAnalysisInputs');
+          location.reload();
+      }
+  }
+
+  // --- Settings Modal Logic ---
+  function setupSettingsModal() {
+    document.getElementById('settings-icon').addEventListener('click', () => settingsModal.classList.add('visible'));
+    document.getElementById('modal-close-btn').addEventListener('click', () => settingsModal.classList.remove('visible'));
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) settingsModal.classList.remove('visible');
+    });
+    
+    document.getElementById('ios-modal-close-btn').addEventListener('click', () => iosInstallModal.classList.remove('visible'));
+    iosInstallModal.addEventListener('click', (e) => {
+        if (e.target === iosInstallModal) iosInstallModal.classList.remove('visible');
+    });
+    
+    commissionRateInput.addEventListener('change', (e) => {
+        settings.commission = parseFloat(e.target.value) || 0;
+        saveSettings();
+        runAnalysis();
+    });
+
+    coinCommissionInput.addEventListener('change', (e) => {
+        settings.coinCommission = parseInput(e.target.value) || 0;
+        saveSettings();
+        runAnalysis();
+    });
+
+    currencyUnitRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            settings.currencyUnit = e.target.value;
+            saveSettings();
+            updateCurrencyUnitDisplay();
+            runAnalysis();
+        });
+    });
+
+    useProxyToggle.addEventListener('change', (e) => {
+        settings.useProxy = e.target.checked;
+        saveSettings();
+    });
+
+    proxyUrlInput.addEventListener('change', (e) => {
+        settings.proxyUrl = e.target.value.trim();
+        saveSettings();
+    });
+  }
+  
+  function updateCurrencyUnitDisplay() {
+      const unitText = settings.currencyUnit === 'toman' ? 'تومان' : 'ریال';
+      currencyUnitSpans.forEach(span => span.textContent = unitText);
+  }
+  
+  // --- Main Analysis Function ---
+  function runAnalysis() {
+    const values = {};
+    for (const key in inputs) values[key] = parseInput(inputs[key].value);
+    
+    errorMessageEl.classList.add('hidden');
+    saveInputs();
+    
+    Object.values(cards).forEach(card => card.classList.add('hidden'));
+
+    const hasBaseData = !isNaN(values.ouncePrice) && !isNaN(values.usdRate);
+    if (!hasBaseData) {
+        return;
+    }
+
+    const intrinsicGramPrice24k = (values.ouncePrice * values.usdRate) / TROY_OUNCE_IN_GRAMS;
+
+    updateDollarCard(values, intrinsicGramPrice24k);
+    
+    if (!isNaN(values.bullionMarketPrice)) {
+        updateBubbleCard('bullion', values.bullionMarketPrice, intrinsicGramPrice24k);
+    }
+    if (!isNaN(values.gold18kMarketPrice)) {
+        const intrinsicGramPrice18k = intrinsicGramPrice24k * GOLD_18K_FACTOR;
+        const intrinsic18kWithCommission = intrinsicGramPrice18k * (1 + settings.commission / 100);
+        updateBubbleCard('gold-18k', values.gold18kMarketPrice, intrinsic18kWithCommission);
+    }
+    
+    const calculateCoinIntrinsic = (weight) => (intrinsicGramPrice24k * weight * GOLD_PURITY_IN_COIN) + settings.coinCommission;
+
+    if (!isNaN(values.coinMarketPrice)) {
+        updateBubbleCard('coin', values.coinMarketPrice, calculateCoinIntrinsic(FULL_COIN_WEIGHT_GRAMS));
+    }
+    if (!isNaN(values.baharCoinMarketPrice)) {
+        updateBubbleCard('bahar-coin', values.baharCoinMarketPrice, calculateCoinIntrinsic(FULL_COIN_WEIGHT_GRAMS));
+    }
+    if (!isNaN(values.halfCoinMarketPrice)) {
+        updateBubbleCard('half-coin', values.halfCoinMarketPrice, calculateCoinIntrinsic(HALF_COIN_WEIGHT_GRAMS));
+    }
+    if (!isNaN(values.quarterCoinMarketPrice)) {
+        updateBubbleCard('quarter-coin', values.quarterCoinMarketPrice, calculateCoinIntrinsic(QUARTER_COIN_WEIGHT_GRAMS));
+    }
+    if (!isNaN(values.gramCoinMarketPrice)) {
+        updateBubbleCard('gram-coin', values.gramCoinMarketPrice, calculateCoinIntrinsic(GRAM_COIN_WEIGHT_GRAMS));
+    }
+  }
+
+  function destroyChart(canvasId) {
+      const chart = Chart.getChart(canvasId);
+      if (chart) {
+          chart.destroy();
+      }
+  }
+  
+  function updateDollarCard(values, intrinsicGramPrice24k) {
+      const impliedUsdConfig = {
+          bullionMarketPrice: { label: 'دلار در شمش', factor: TROY_OUNCE_IN_GRAMS },
+          gold18kMarketPrice: { label: 'دلار در ۱۸ع', factor: TROY_OUNCE_IN_GRAMS / GOLD_18K_FACTOR },
+          coinMarketPrice: { label: 'دلار در سکه امامی', factor: TROY_OUNCE_IN_GRAMS / (FULL_COIN_WEIGHT_GRAMS * GOLD_PURITY_IN_COIN) },
+          baharCoinMarketPrice: { label: 'دلار در بهار آزادی', factor: TROY_OUNCE_IN_GRAMS / (FULL_COIN_WEIGHT_GRAMS * GOLD_PURITY_IN_COIN) },
+          halfCoinMarketPrice: { label: 'دلار در نیم سکه', factor: TROY_OUNCE_IN_GRAMS / (HALF_COIN_WEIGHT_GRAMS * GOLD_PURITY_IN_COIN) },
+          quarterCoinMarketPrice: { label: 'دلار در ربع سکه', factor: TROY_OUNCE_IN_GRAMS / (QUARTER_COIN_WEIGHT_GRAMS * GOLD_PURITY_IN_COIN) },
+          gramCoinMarketPrice: { label: 'دلار در سکه گرمی', factor: TROY_OUNCE_IN_GRAMS / (GRAM_COIN_WEIGHT_GRAMS * GOLD_PURITY_IN_COIN) },
+      };
+
+      const chartLabels = ['دلار آزاد'];
+      const chartData = [values.usdRate];
+      const bubbleSummary = [];
+
+      for (const key in impliedUsdConfig) {
+          if (!isNaN(values[key])) {
+              const config = impliedUsdConfig[key];
+              const impliedUsd = (values[key] * config.factor) / values.ouncePrice;
+              chartLabels.push(config.label);
+              chartData.push(impliedUsd);
+              bubbleSummary.push({ label: config.label, value: impliedUsd });
+          }
+      }
+
+      if (chartData.length <= 1) {
+          cards.dollar.classList.add('hidden');
+          return;
+      }
+      
+      cards.dollar.classList.remove('hidden');
+
+      const bubbleContainer = document.getElementById('dollar-bubble-summary-container');
+      bubbleContainer.innerHTML = '';
+      const currency = `<span class="currency-unit">${settings.currencyUnit === 'toman' ? 'ت' : 'ر'}</span>`;
+
+      bubbleSummary.forEach(item => {
+          const diff = item.value - values.usdRate;
+          const percent = (diff / values.usdRate) * 100;
+          const bubbleItem = document.createElement('div');
+          bubbleItem.className = 'bubble-item';
+          bubbleItem.innerHTML = `
+              <span class="label">حباب ${item.label.replace('دلار در ', '')}:</span>
+              <span class="value ${percent >= 0 ? 'positive' : 'negative'}">
+                  ${formatNumber(diff)} ${currency} (${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%)
+              </span>
+          `;
+          bubbleContainer.appendChild(bubbleItem);
+      });
+      
+      const otherRates = bubbleSummary.map(i => i.value);
+      const minRate = Math.min(...otherRates);
+      const maxRate = Math.max(...otherRates);
+      document.getElementById('dollar-conclusion').textContent = `نتیجه: ارزان‌ترین دلار در بازار با قیمت ${formatNumber(minRate)} و گران‌ترین با قیمت ${formatNumber(maxRate)} معامله می‌شود.`;
+
+      destroyChart('dollarBarChart');
+      initDollarBarChart(chartLabels, chartData);
+  }
+  
+  function updateBubbleCard(type, marketPrice, intrinsicValue) {
+      const cardElement = cards[type];
+      if (!cardElement) {
+          console.error(`Analysis card with type '${type}' not found in DOM.`);
+          return;
+      }
+      cardElement.classList.remove('hidden');
+      
+      const bubbleAmount = marketPrice - intrinsicValue;
+      const bubblePercent = (intrinsicValue > 0) ? (bubbleAmount / intrinsicValue) * 100 : 0;
+      const currency = `<span class="currency-unit">${settings.currencyUnit === 'toman' ? 'تومان' : 'ریال'}</span>`;
+      
+      const numberFormatter = (val) => `${formatNumber(val)} ${currency}`;
+      
+      animateValue(document.getElementById(`res-${type}-market`), previousAnalysisData[`${type}_market`] || 0, marketPrice, 500, numberFormatter);
+      animateValue(document.getElementById(`res-${type}-intrinsic`), previousAnalysisData[`${type}_intrinsic`] || 0, intrinsicValue, 500, numberFormatter);
+
+      const chartData = [intrinsicValue, bubbleAmount >= 0 ? Math.abs(bubbleAmount) : 0];
+      const chartCanvasId = `${type.replace(/-/g, '')}DonutChart`;
+      
+      destroyChart(chartCanvasId);
+      initDonutChart(type, chartData, bubblePercent);
+
+      previousAnalysisData[`${type}_market`] = marketPrice;
+      previousAnalysisData[`${type}_intrinsic`] = intrinsicValue;
+  }
+
+  // --- Chart Initializations ---
+  function createGradient(ctx, area, color1, color2) {
+      if (!area) return color1;
+      const gradient = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+      gradient.addColorStop(0, color1);
+      gradient.addColorStop(1, color2);
+      return gradient;
+  }
+
+  const doughnutCenterText = {
+      id: 'doughnutCenterText',
+      afterDraw(chart, args, options) {
+          if (!options.text) return;
+          const { ctx, chartArea: { width, height }} = chart;
+          ctx.save();
+          const text = options.text;
+          const color = options.color || '#fff';
+          ctx.font = `800 ${width / 5}px Vazirmatn`;
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, width / 2, height / 2);
+          ctx.restore();
+      }
+  };
+
+  function initDollarBarChart(labels, data) {
+    const ctx = document.getElementById('dollarBarChart').getContext('2d');
+    const colors = [
+        { dark: '--accent-purple-dark', light: '--accent-purple' },
+        { dark: '--accent-teal-dark', light: '--accent-teal' },
+        { dark: '--accent-pink-dark', light: '--accent-pink' },
+        { dark: '--green-positive-dark', light: '--green-positive' },
+        { dark: '#f59e0b', light: '#facc15' }, // amber
+        { dark: '#0ea5e9', light: '#38bdf8' }, // sky
+        { dark: '#ef4444', light: '#f87171' }, // red
+        { dark: '#8b5cf6', light: '#a78bfa' }, // violet
+    ];
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: `قیمت (${settings.currencyUnit === 'toman' ? 'تومان' : 'ریال'})`,
+                data: data,
+                backgroundColor: function(context) {
+                    const {ctx, chartArea} = context.chart;
+                    const colorPair = colors[context.dataIndex % colors.length];
+                    return createGradient(ctx, chartArea, getCssVar(colorPair.dark) || colorPair.dark, getCssVar(colorPair.light) || colorPair.light);
+                },
+                borderRadius: 6,
+                barPercentage: 0.5,
+                categoryPercentage: 0.7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: getCssVar('--grid-line-color') },
+                    ticks: { color: getCssVar('--secondary-text'), callback: (value) => formatNumber(value) }
+                },
+                x: { 
+                    grid: { display: false },
+                    ticks: { color: getCssVar('--primary-text'), font: { weight: '600' } } 
+                }
+            }
+        }
+    });
+  }
+
+  function initDonutChart(type, data, bubblePercent) {
+      const chartCanvasId = `${type.replace(/-/g, '')}DonutChart`;
+      const ctx = document.getElementById(chartCanvasId).getContext('2d');
+      const isPositive = bubblePercent >= 0;
+      
+      return new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+              labels: ['ارزش ذاتی', 'حباب'],
+              datasets: [{
+                  data: data,
+                  backgroundColor: (context) => {
+                      const { chart, dataIndex } = context;
+                      const { ctx, chartArea } = chart;
+                      return dataIndex === 0 
+                          ? createGradient(ctx, chartArea, getCssVar('--accent-teal-dark'), getCssVar('--accent-teal'))
+                          : (isPositive ? createGradient(ctx, chartArea, getCssVar('--green-positive-dark'), getCssVar('--green-positive')) : createGradient(ctx, chartArea, getCssVar('--red-dark'), getCssVar('--red')));
+                  },
+                  borderColor: getCssVar('--card-bg'),
+                  borderWidth: 4,
+                  cutout: '80%'
+              }]
+          },
+          plugins: [doughnutCenterText],
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: {
+                  animateRotate: true,
+                  animateScale: true
+              },
+              plugins: { 
+                  tooltip: { enabled: false },
+                  doughnutCenterText: {
+                      text: `${isPositive ? '+' : ''}${bubblePercent.toFixed(1)}%`,
+                      color: isPositive ? getCssVar('--green-positive') : getCssVar('--red')
+                  }
+              }
+          }
+      });
+  }
+
+    // --- Auto-fill Scraping Logic ---
+    function cleanPriceString(text) {
+        if (!text) return '';
+        const englishNumbers = text.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+        return englishNumbers.replace(/[^0-9.]/g, '');
+    }
+
+    async function fetchWithPublicProxies(targetUrl) {
+        for (const proxy of CORS_PROXIES) {
+            const url = proxy + targetUrl;
+            try {
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text) return text;
+                }
+                throw new Error(`Proxy ${proxy} failed with status: ${response.status}`);
+            } catch (error) {
+                console.warn(error);
+            }
+        }
+        throw new Error('All public proxies failed.');
+    }
+
+    async function fetchWithCloudflareProxy(targetUrl) {
+        if (!settings.proxyUrl) {
+          throw new Error('آدرس پراکسی در تنظیمات مشخص نشده است.');
+        }
+        try {
+            const response = await fetch(settings.proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: targetUrl })
+            });
+            if (response.ok) {
+                const text = await response.text();
+                if (text) return text;
+            }
+            throw new Error(`Cloudflare proxy failed with status: ${response.status}`);
+        } catch (error) {
+            console.error(error);
+            throw new Error('Cloudflare proxy request failed.');
+        }
+    }
+
+    async function fetchAndFillData() {
+        const buttonText = autoFillButton.querySelector('.button-text');
+        const spinner = autoFillButton.querySelector('.spinner');
+        const targetUrl = 'https://chandshode.com/';
+
+        autoFillButton.disabled = true;
+        buttonText.classList.add('hidden');
+        spinner.classList.remove('hidden');
+        errorMessageEl.classList.add('hidden');
+
+        try {
+            const htmlText = settings.useProxy
+                ? await fetchWithCloudflareProxy(targetUrl)
+                : await fetchWithPublicProxies(targetUrl);
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+
+            const priceSelectors = {
+                ouncePrice: '#gold-card-3 .price',
+                usdRate: '#currency-card-1 .price',
+                bullionMarketPrice: '#gold-card-1 .price',
+                gold18kMarketPrice: '#gold-card-0 .price',
+                coinMarketPrice: '#gold-card-7 .price',        // اصلاح شد: قبلا #gold-card-4 بود
+                baharCoinMarketPrice: '#gold-card-8 .price',
+                halfCoinMarketPrice: '#gold-card-6 .price',     // اصلاح شد: قبلا #gold-card-5 بود
+                quarterCoinMarketPrice: '#gold-card-5 .price',  // اصلاح شد: قبلا #gold-card-6 بود
+                gramCoinMarketPrice: '#gold-card-4 .price'      // اصلاح شد: قبلا #gold-card-7 بود
+            };
+
+            let foundCount = 0;
+            for (const key in priceSelectors) {
+                const priceText = doc.querySelector(priceSelectors[key])?.textContent;
+                const price = cleanPriceString(priceText);
+                if (price) {
+                    updateInputValue(inputs[key], price);
+                    foundCount++;
+                } else {
+                    console.warn(`Could not find price for: ${key} with selector ${priceSelectors[key]}`);
+                }
+            }
+            
+            if (foundCount === 0) {
+                 throw new Error("هیچ قیمتی یافت نشد. ممکن است ساختار سایت منبع تغییر کرده باشد.");
+            }
+            
+            runAnalysis();
+
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+            errorMessageEl.textContent = `خطا در دریافت اطلاعات: ${error.message}`;
+            errorMessageEl.classList.remove('hidden');
+        } finally {
+            autoFillButton.disabled = false;
+            buttonText.classList.remove('hidden');
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function updateInputValue(inputElement, value) {
+        if (value && inputElement) {
+            const formattedValue = new Intl.NumberFormat('en-US').format(value);
+            if (inputElement.value !== formattedValue) {
+                inputElement.value = formattedValue;
+            }
+        }
+    }
+
+  // --- Event Listeners & Initial Load ---
+  document.addEventListener('DOMContentLoaded', () => {
+    analyzeButton.addEventListener('click', () => {
+        const hasBaseData = !isNaN(parseInput(inputs.ouncePrice.value)) && !isNaN(parseInput(inputs.usdRate.value));
+        if (!hasBaseData) {
+            errorMessageEl.textContent = 'لطفاً قیمت جهانی انس و قیمت دلار را برای انجام تحلیل‌ها وارد کنید.';
+            errorMessageEl.classList.remove('hidden');
+        } else {
+            errorMessageEl.classList.add('hidden');
+            runAnalysis();
+        }
+    });
+
+    autoFillButton.addEventListener('click', fetchAndFillData);
+    clearCacheButton.addEventListener('click', clearCache);
+      
+    [...Object.values(inputs), coinCommissionInput].forEach(input => {
+        if(input) {
+            input.addEventListener('input', (e) => {
+                const cursorPosition = e.target.selectionStart;
+                const originalLength = e.target.value.length;
+                let value = e.target.value.replace(/,/g, '');
+                if (!isNaN(value) && value.length > 0) {
+                    e.target.value = new Intl.NumberFormat('en-US').format(value);
+                }
+                const newLength = e.target.value.length;
+                e.target.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+            });
+        }
+    });
+
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installPwaButton.disabled = false;
+        installPwaText.textContent = 'نصب اپلیکیشن';
+    });
+    
+    installPwaButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            deferredPrompt = null;
+            installPwaButton.disabled = true;
+            installPwaText.textContent = 'نصب شد';
+        } else if (isIOS()) {
+            iosInstallModal.classList.add('visible');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        installPwaButton.disabled = true;
+        installPwaText.textContent = 'نصب شد';
+        deferredPrompt = null;
+    });
+    
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        document.getElementById('install-pwa-container').classList.add('hidden');
+    } else {
+        installPwaButton.disabled = true;
+        if (isIOS()) {
+            installPwaButton.disabled = false;
+            installPwaText.textContent = 'راهنمای نصب برای آیفون';
+        } else {
+             installPwaText.textContent = 'نصب (غیرفعال)';
+        }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'autofill') {
+        fetchAndFillData();
+    }
+
+    setupSettingsModal();
+    loadSettings();
+    loadInputs();
+    runAnalysis();
+  });
+
+</script>
+</body>
+</html>
